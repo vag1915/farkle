@@ -117,11 +117,13 @@ jobs:
           package fr.vanessa.farkle;
 
           import android.app.Activity;
+          import android.content.Context;
           import android.graphics.Color;
           import android.os.Bundle;
           import android.speech.tts.TextToSpeech;
           import android.speech.tts.UtteranceProgressListener;
           import android.view.WindowManager;
+          import android.view.accessibility.AccessibilityManager;
           import android.webkit.JavascriptInterface;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
@@ -133,11 +135,17 @@ jobs:
               private WebView web;
               private TextToSpeech tts;
               private volatile boolean ttsPret = false;
+              private AccessibilityManager am;
+
+              private boolean lecteurActif() {
+                  return am != null && am.isEnabled();
+              }
 
               @Override
               protected void onCreate(Bundle b) {
                   super.onCreate(b);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                  am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
 
                   web = new WebView(this);
                   web.setBackgroundColor(Color.BLACK);
@@ -149,24 +157,27 @@ jobs:
                   web.addJavascriptInterface(new Pont(), "AndroidTTS");
                   setContentView(web);
 
-                  tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-                      @Override
-                      public void onInit(int status) {
-                          if (status == TextToSpeech.SUCCESS) {
-                              int r = tts.setLanguage(Locale.FRANCE);
-                              if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                  tts.setLanguage(Locale.FRENCH);
+                  // La synthese propre a l'application ne sert que s'il n'y a pas de lecteur d'ecran actif.
+                  if (!lecteurActif()) {
+                      tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                          @Override
+                          public void onInit(int status) {
+                              if (status == TextToSpeech.SUCCESS) {
+                                  int r = tts.setLanguage(Locale.FRANCE);
+                                  if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                                      tts.setLanguage(Locale.FRENCH);
+                                  }
+                                  ttsPret = true;
                               }
-                              ttsPret = true;
                           }
-                      }
-                  });
-                  tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                      @Override public void onStart(String id) { }
-                      @Override public void onDone(String id) { fin(id); }
-                      @Override public void onError(String id) { fin(id); }
-                      @Override public void onStop(String id, boolean interrupted) { fin(id); }
-                  });
+                      });
+                      tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                          @Override public void onStart(String id) { }
+                          @Override public void onDone(String id) { fin(id); }
+                          @Override public void onError(String id) { fin(id); }
+                          @Override public void onStop(String id, boolean interrupted) { fin(id); }
+                      });
+                  }
 
                   web.loadUrl("file:///android_asset/index.html");
                   web.requestFocus();
@@ -186,18 +197,39 @@ jobs:
               public class Pont {
                   @JavascriptInterface
                   public boolean pret() {
-                      return ttsPret;
+                      return lecteurActif() || ttsPret;
                   }
 
                   @JavascriptInterface
-                  public void speak(String texte, String id, boolean ajouter) {
-                      if (!ttsPret) return;
+                  public boolean lecteur() {
+                      return lecteurActif();
+                  }
+
+                  @JavascriptInterface
+                  public void speak(final String texte, final String id, boolean ajouter) {
+                      if (lecteurActif()) {
+                          // Annonce confiee au lecteur d'ecran de l'appareil (une seule voix).
+                          runOnUiThread(new Runnable() {
+                              @Override
+                              public void run() {
+                                  if (web != null) {
+                                      web.announceForAccessibility(texte);
+                                      web.postDelayed(new Runnable() {
+                                          @Override
+                                          public void run() { fin(id); }
+                                      }, 500 + texte.length() * 70L);
+                                  }
+                              }
+                          });
+                          return;
+                      }
+                      if (!ttsPret || tts == null) return;
                       tts.speak(texte, ajouter ? TextToSpeech.QUEUE_ADD : TextToSpeech.QUEUE_FLUSH, null, id);
                   }
 
                   @JavascriptInterface
                   public void stop() {
-                      if (ttsPret) tts.stop();
+                      if (ttsPret && tts != null && !lecteurActif()) tts.stop();
                   }
               }
 

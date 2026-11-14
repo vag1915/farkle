@@ -189,6 +189,7 @@ body.sans-voix .nav:focus { outline: none; }
      SONS (synthèse Web Audio)
      ===================================================================== */
   let AC = null, master = null, noiseBuf = null, fxIn = null;
+  const suivis = [];
   function ac() {
     if (!AC) {
       const C = window.AudioContext || window.webkitAudioContext;
@@ -199,9 +200,16 @@ body.sans-voix .nav:focus { outline: none; }
       master.connect(comp);
       comp.connect(AC.destination);
       noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+      if (natif()) {
+        ['createGain', 'createBiquadFilter', 'createStereoPanner', 'createOscillator', 'createBufferSource'].forEach(function (k) {
+          if (!AC[k]) return;
+          const f = AC[k].bind(AC);
+          AC[k] = function () { const n = f.apply(null, arguments); suivis.push(n); return n; };
+        });
+      }
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      if (AC.createConvolver) {
+      if (AC.createConvolver && !natif()) {
         const conv = AC.createConvolver();
         const len = Math.floor(AC.sampleRate * (natif() ? 0.8 : 1.5));
         const ir = AC.createBuffer(2, len, AC.sampleRate);
@@ -221,7 +229,15 @@ body.sans-voix .nav:focus { outline: none; }
   }
   function jouer(fn, arg) {
     if (RAPIDE) return;
-    try { ac(); fn(arg); } catch (e) { /* son indisponible */ }
+    try {
+      ac();
+      const d0 = suivis.length;
+      fn(arg);
+      if (suivis.length > d0) {
+        const lot = suivis.splice(d0);
+        setTimeout(function () { lot.forEach(function (n) { try { n.disconnect(); } catch (e) { /* rien */ } }); }, 12000);
+      }
+    } catch (e) { /* son indisponible */ }
   }
   function env(g, t, a, peak, dur) {
     g.gain.setValueAtTime(0.0001, t);
@@ -500,8 +516,13 @@ body.sans-voix .nav:focus { outline: none; }
     else speechSynthesis.onvoiceschanged = chargerVoix;
   }
   /* Lit un texte. Rend une promesse qui se termine quand la lecture est finie (ou interrompue). */
+  /* Prononciation : « farkle » est lu comme du français ; on l'écrit « farkeul » pour la voix seulement. */
+  function prononce(t) {
+    return String(t).replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; });
+  }
   function dire(texte, opt) {
     opt = opt || {};
+    texte = prononce(texte || '');
     return new Promise(function (resolve) {
       if (RAPIDE || (!synthOk && !natif()) || !texte || (!reg.voix && !opt.force)) {
         if (!RAPIDE && !opt.court) { setTimeout(resolve, 350); } else resolve();
@@ -530,7 +551,7 @@ body.sans-voix .nav:focus { outline: none; }
   function taire() { if (natif()) { try { window.AndroidTTS.stop(); } catch (e) { /* rien */ } return; } if (synthOk) { try { speechSynthesis.cancel(); } catch (e) { /* rien */ } } }
   function lab(el, texte) {
     el.setAttribute('data-parle', texte);
-    el.setAttribute('aria-label', texte);
+    el.setAttribute('aria-label', prononce(texte));
   }
 
   /* =====================================================================
@@ -822,8 +843,14 @@ body.sans-voix .nav:focus { outline: none; }
       await tourRobot(tk);
     } else {
       G.busy = false;
-      focusSilencieux($('gobelet'));
-      dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : '') + '. Lancer.');
+      if (lecteur()) {
+        await dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : ''));
+        if (!vivant(tk)) return;
+        focusSilencieux($('gobelet'));
+      } else {
+        focusSilencieux($('gobelet'));
+        dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : '') + '. Lancer.');
+      }
     }
   }
 
@@ -1215,6 +1242,13 @@ body.sans-voix .nav:focus { outline: none; }
   reconstruireScores();
   majReglages();
   show('accueil');
+  /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
+     Le clavier (flèches + OK) est géré par le jeu lui-même. */
+  if (lecteur()) {
+    Array.prototype.forEach.call(document.querySelectorAll('.nav'), function (el) {
+      if (el.tagName !== 'INPUT') el.setAttribute('role', 'text');
+    });
+  }
 
   if (RAPIDE || window.__test) window.__farkle = { reg: reg, G: G, scoreOf: scoreOf, valide: valide, sousEnsembles: sousEnsembles, prepDP: prepDP, R: R, S: S, dice: dice, nom: nom };
 })();

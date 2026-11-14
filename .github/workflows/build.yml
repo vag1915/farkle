@@ -217,7 +217,7 @@ jobs:
                                       web.postDelayed(new Runnable() {
                                           @Override
                                           public void run() { fin(id); }
-                                      }, 500 + texte.length() * 70L);
+                                      }, 700 + texte.length() * 120L);
                                   }
                               }
                           });

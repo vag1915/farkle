@@ -203,7 +203,7 @@ body.sans-voix .nav:focus { outline: none; }
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       if (AC.createConvolver) {
         const conv = AC.createConvolver();
-        const len = Math.floor(AC.sampleRate * 1.5);
+        const len = Math.floor(AC.sampleRate * (natif() ? 0.8 : 1.5));
         const ir = AC.createBuffer(2, len, AC.sampleRate);
         for (let ch = 0; ch < 2; ch++) {
           const c2 = ir.getChannelData(ch);
@@ -483,6 +483,9 @@ body.sans-voix .nav:focus { outline: none; }
   let voixFr = null;
   /* Dans l'application Android, la voix de l'appareil est appelée directement (pont AndroidTTS). */
   const natif = function () { try { return typeof window.AndroidTTS !== 'undefined' && window.AndroidTTS.pret() === true; } catch (e) { return false; } };
+  /* Si un lecteur d'écran est actif sur l'appareil, il lit déjà l'élément actif : le jeu ne le répète pas
+     et passe ses annonces par ce même lecteur (une seule voix). */
+  const lecteur = function () { try { return natif() && window.AndroidTTS.lecteur() === true; } catch (e) { return false; } };
   let ttsId = 0;
   const ttsAttente = {};
   window.__ttsFin = function (id) { const f = ttsAttente[id]; if (f) { delete ttsAttente[id]; f(); } };
@@ -699,7 +702,6 @@ body.sans-voix .nav:focus { outline: none; }
   function majDe(i) {
     const d = dice[i];
     lab(d.el, String(d.v) + (d.kept || d.locked ? ', gardé' : ''));
-    d.el.setAttribute('aria-pressed', String(d.kept));
   }
   function mesurer() {
     const W = zone.clientWidth, H = zone.clientHeight;
@@ -724,7 +726,6 @@ body.sans-voix .nav:focus { outline: none; }
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'de nav off';
-    el.setAttribute('aria-pressed', 'false');
     zone.appendChild(el);
     dice.push({ el: el, v: 1, kept: false, locked: false });
     el.addEventListener('click', function () { actionDe(i); });
@@ -1183,7 +1184,7 @@ body.sans-voix .nav:focus { outline: none; }
   }
   document.addEventListener('focusin', function (e) {
     const el = e.target;
-    if (!el.classList || !el.classList.contains('nav') || silence) return;
+    if (!el.classList || !el.classList.contains('nav') || silence || lecteur()) return;
     dire(el.getAttribute('data-parle') || el.textContent.trim(), { court: true });
   });
   document.addEventListener('keydown', function (e) {

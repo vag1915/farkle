@@ -1095,7 +1095,7 @@ body.sans-voix .nav:focus { outline: none; }
   function show(v) {
     VUES.forEach(function (x) { $('v-' + x).hidden = x !== v; });
     $('haut').hidden = !(v === 'accueil' || v === 'partie');
-    if (v === 'partie') disposer();
+    if (v === 'partie') { disposer(); placerDouble(); }
   }
   function abandonner() {
     G.token++;
@@ -1269,6 +1269,26 @@ body.sans-voix .nav:focus { outline: none; }
   show('accueil');
   /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
      Le clavier (flèches + OK) est géré par le jeu lui-même. */
+  /* Lecteur d'écran : le lecteur parcourt les éléments dans l'ordre de la page. Un second « Lancer »,
+     placé après STOP et superposé au vrai bouton, permet de passer de STOP à Lancer avec la flèche de droite. */
+  let double = null;
+  function placerDouble() {
+    if (!double) return;
+    const r = $('gobelet').getBoundingClientRect();
+    double.style.left = r.left + 'px'; double.style.top = r.top + 'px';
+    double.style.width = r.width + 'px'; double.style.height = r.height + 'px';
+  }
+  if (lecteur()) {
+    double = document.createElement('button');
+    double.type = 'button';
+    double.tabIndex = -1;
+    double.setAttribute('aria-label', 'Lancer');
+    double.style.cssText = 'position:fixed;margin:0;padding:0;border:0;background:transparent;opacity:0;pointer-events:none;';
+    $('v-partie').appendChild(double);
+    surClic(double, function () { actionGobelet(); });
+    window.addEventListener('resize', placerDouble);
+    if (window.ResizeObserver) new ResizeObserver(placerDouble).observe($('gobelet'));
+  }
   if (lecteur()) {
     Array.prototype.forEach.call(document.querySelectorAll('.nav'), function (el) {
       if (el.tagName !== 'INPUT') el.setAttribute('role', 'group');

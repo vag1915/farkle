@@ -214,10 +214,6 @@ jobs:
                               public void run() {
                                   if (web != null) {
                                       web.announceForAccessibility(texte);
-                                      web.postDelayed(new Runnable() {
-                                          @Override
-                                          public void run() { fin(id); }
-                                      }, 700 + texte.length() * 120L);
                                   }
                               }
                           });

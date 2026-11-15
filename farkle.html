@@ -183,18 +183,8 @@ body.sans-voix .nav:focus { outline: none; }
   const rnd = (n) => Math.floor(Math.random() * n);
   const RAPIDE = !!window.__rapide;
   const reduit = RAPIDE || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  /* Les clics sont gérés par un seul écouteur sur la page : les éléments ne sont plus « cliquables »
-     pour le lecteur d'écran, qui n'ajoute donc plus « bouton ». */
-  const clics = new Map();
-  function surClic(el, fn) { clics.set(el, fn); }
-  document.addEventListener('click', function (e) {
-    let el = e.target;
-    while (el && el !== document) {
-      const f = clics.get(el);
-      if (f) { f.call(el, e); return; }
-      el = el.parentNode;
-    }
-  });
+  /* Chaque élément garde son propre écouteur : c'est ce qui permet au bouton OK du SensePlayer de l'activer. */
+  function surClic(el, fn) { el.addEventListener('click', fn); }
   const attendre = (ms) => (RAPIDE ? Promise.resolve() : new Promise(function (r) { setTimeout(r, ms); }));
 
   /* =====================================================================

@@ -183,6 +183,18 @@ body.sans-voix .nav:focus { outline: none; }
   const rnd = (n) => Math.floor(Math.random() * n);
   const RAPIDE = !!window.__rapide;
   const reduit = RAPIDE || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* Les clics sont gérés par un seul écouteur sur la page : les éléments ne sont plus « cliquables »
+     pour le lecteur d'écran, qui n'ajoute donc plus « bouton ». */
+  const clics = new Map();
+  function surClic(el, fn) { clics.set(el, fn); }
+  document.addEventListener('click', function (e) {
+    let el = e.target;
+    while (el && el !== document) {
+      const f = clics.get(el);
+      if (f) { f.call(el, e); return; }
+      el = el.parentNode;
+    }
+  });
   const attendre = (ms) => (RAPIDE ? Promise.resolve() : new Promise(function (r) { setTimeout(r, ms); }));
 
   /* =====================================================================
@@ -765,7 +777,7 @@ body.sans-voix .nav:focus { outline: none; }
     el.className = 'de nav off';
     zone.appendChild(el);
     dice.push({ el: el, v: 1, kept: false, locked: false });
-    el.addEventListener('click', function () { actionDe(i); });
+    surClic(el, function () { actionDe(i); });
   }
   if (window.ResizeObserver) {
     new ResizeObserver(function () { if (!G.busy && zone.clientWidth) disposer(); }).observe(zone);
@@ -1078,6 +1090,7 @@ body.sans-voix .nav:focus { outline: none; }
     const l = classement();
     construireFin();
     show('fin');
+    focusSilencieux($('ok-fin'));
     jouer(sonVictoire);
     await attendre(3600);
     if (!vivant(tk)) return;
@@ -1164,7 +1177,7 @@ body.sans-voix .nav:focus { outline: none; }
     document.body.classList.toggle('sans-voix', !reg.voix);
   }
   function changer(el, fn, opt) {
-    el.addEventListener('click', function () {
+    surClic(el, function () {
       fn();
       sauver();
       majReglages();
@@ -1176,7 +1189,7 @@ body.sans-voix .nav:focus { outline: none; }
     changer(rType[i], function () { reg.joueurs[i].type = reg.joueurs[i].type === 'robot' ? 'humain' : 'robot'; });
     changer(rNiv[i], function () { reg.joueurs[i].niveau = NIVEAUX[(NIVEAUX.indexOf(reg.joueurs[i].niveau) + 1) % NIVEAUX.length]; });
   }
-  rVoix.addEventListener('click', function () {
+  surClic(rVoix, function () {
     reg.voix = !reg.voix;
     sauver();
     majReglages();
@@ -1203,7 +1216,7 @@ body.sans-voix .nav:focus { outline: none; }
     dire('Nom du participant ' + (i + 1) + ', ' + nom(i));
   }
   for (let i = 0; i < 4; i++) {
-    rNom[i].addEventListener('click', function () { debutEdition(i); });
+    surClic(rNom[i], function () { debutEdition(i); });
     rIn[i].addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); finEdition(true); } });
     rIn[i].addEventListener('blur', function () { finEdition(false); });
   }
@@ -1215,12 +1228,12 @@ body.sans-voix .nav:focus { outline: none; }
     dire('Paramètres. ' + rNb.getAttribute('data-parle'));
   }
 
-  $('nouvelle').addEventListener('click', nouvellePartie);
-  $('engrenage').addEventListener('click', ouvrirReglages);
-  $('gobelet').addEventListener('click', actionGobelet);
-  $('stop').addEventListener('click', actionStop);
-  $('ok-reglages').addEventListener('click', function () { sauver(); retourAccueil(); });
-  $('ok-fin').addEventListener('click', retourAccueil);
+  surClic($('nouvelle'), nouvellePartie);
+  surClic($('engrenage'), ouvrirReglages);
+  surClic($('gobelet'), actionGobelet);
+  surClic($('stop'), actionStop);
+  surClic($('ok-reglages'), function () { sauver(); retourAccueil(); });
+  surClic($('ok-fin'), retourAccueil);
 
   /* =====================================================================
      NAVIGATION AU CLAVIER (flèches + OK) ET LECTURE DE L'ÉLÉMENT ACTIF
@@ -1245,6 +1258,7 @@ body.sans-voix .nav:focus { outline: none; }
       e.preventDefault();
       if (!items.length) return;
       if (i < 0) items[0].focus();
+      else if (items[i].id === 'stop' && $('gobelet').getClientRects().length) $('gobelet').focus();
       else if (i >= items.length - 1) { jouer(sonButee); items[i].focus(); }
       else items[i + 1].focus();
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {

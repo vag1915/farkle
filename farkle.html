@@ -305,34 +305,40 @@ body.sans-voix .nav:focus { outline: none; }
     o.connect(g2); g2.connect(out);
     o.start(t); o.stop(t + 0.07);
   }
+  function piano(t, midi, vel, dur) {
+    const f = midiHz(midi);
+    const lp = AC.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = Math.min(9000, 1200 + f * 3 + vel * 3000);
+    lp.Q.value = 0.4;
+    const mix = AC.createGain();
+    mix.gain.value = 0.2;
+    mix.connect(lp); lp.connect(master); sendFx(lp, 0.5);
+    const partiels = [];
+    for (let k = 1; k <= 6; k++) {
+      const fk = f * k * Math.sqrt(1 + 0.0004 * k * k);
+      if (fk < 12000) partiels.push([fk, vel / Math.pow(k, 1.15), dur / (1 + 0.55 * (k - 1))]);
+    }
+    partiels.push([f * 1.0018, vel * 0.5, dur]);
+    partiels.forEach(function (p) {
+      const o = AC.createOscillator();
+      o.type = 'sine'; o.frequency.value = p[0];
+      const g = AC.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(p[1], t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + p[2]);
+      o.connect(g); g.connect(mix);
+      o.start(t); o.stop(t + p[2] + 0.05);
+    });
+    noiseHit(t, Math.min(5000, f * 4), 1.2, 0.05 * vel, 0.02);
+  }
+  /* Lancer : arpège descendant au piano, une note par dé lancé. */
   function sonLancer(n) {
-    const t0 = AC.currentTime + 0.02;
-    const secousse = 0.2 + 0.02 * n;
-    const nc = 6 + 3 * n;
-    for (let i = 0; i < nc; i++) {
-      impact(t0 + Math.random() * secousse, 0.16 + Math.random() * 0.14, (Math.random() * 2 - 1) * 0.3, 1.25);
-    }
-    const tl = t0 + secousse + 0.04;
-    const A = 0.5 / Math.pow(n, 0.45);
-    for (let k = 0; k < n; k++) {
-      const pan = (Math.random() * 2 - 1) * 0.7;
-      let t = tl + Math.random() * 0.15;
-      let T = 0.16 + Math.random() * 0.1;
-      let a = A * (0.8 + Math.random() * 0.4);
-      const e = 0.55 + Math.random() * 0.12;
-      for (let j = 0; j < 12 && a > 0.025; j++) {
-        impact(t, a, pan, 1);
-        t += T; T *= e; a *= 0.62 + Math.random() * 0.1;
-      }
-      const nr = 3 + rnd(4);
-      let tr = t;
-      for (let j = 0; j < nr; j++) {
-        tr += 0.018 + Math.random() * 0.02;
-        impact(tr, 0.05 * (1 - j / nr) + 0.01, pan, 0.9);
-      }
-    }
-    for (let i = 0; i < 2 * (n - 1); i++) {
-      impact(tl + 0.1 + Math.random() * 0.8, 0.1 + Math.random() * 0.08, (Math.random() * 2 - 1) * 0.6, 1.5);
+    const t = AC.currentTime + 0.02;
+    const gamme = [91, 88, 84, 79, 76, 72];
+    for (let i = 0; i < n; i++) {
+      const dernier = i === n - 1;
+      piano(t + i * 0.085, gamme[i], 0.95 - 0.35 * (i / 5), dernier ? 1.8 : 1.1);
     }
   }
   function cuivre(t, midi, vel, dur) {
@@ -515,10 +521,20 @@ body.sans-voix .nav:focus { outline: none; }
     if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', chargerVoix);
     else speechSynthesis.onvoiceschanged = chargerVoix;
   }
+  function estimer(t) {
+    const morceaux = String(t).split(/[\s,.;:!?]+/).filter(Boolean);
+    let ms = 450;
+    morceaux.forEach(function (m) { ms += 380 + 50 * m.length; });
+    ms += 200 * (String(t).match(/[,.;:!?]/g) || []).length;
+    return Math.round(ms * 1.1);
+  }
   /* Lit un texte. Rend une promesse qui se termine quand la lecture est finie (ou interrompue). */
   /* Prononciation : « farkle » est lu comme du français ; on l'écrit « farkeul » pour la voix seulement. */
   function prononce(t) {
-    return String(t).replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; });
+    const MOTS = ['', 'un', 'deux', 'trois', 'quatre'];
+    return String(t)
+      .replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; })
+      .replace(/\b(Robot|Joueur|participant|Participant) ([1-4])\b/g, function (m, a, n) { return a + ' ' + MOTS[+n]; });
   }
   function dire(texte, opt) {
     opt = opt || {};
@@ -535,7 +551,7 @@ body.sans-voix .nav:focus { outline: none; }
           const id = String(++ttsId);
           ttsAttente[id] = fin;
           window.AndroidTTS.speak(texte, id, !!opt.ajouter);
-          setTimeout(fin, 1800 + texte.length * 110);
+          setTimeout(fin, lecteur() ? estimer(texte) : 1800 + texte.length * 110);
           return;
         }
         speechSynthesis.cancel();
@@ -744,8 +760,8 @@ body.sans-voix .nav:focus { outline: none; }
     dice.forEach(function (d, i) { d.el.style.transitionDuration = '0s'; aligner1(i); });
   }
   for (let i = 0; i < 6; i++) {
-    const el = document.createElement('button');
-    el.type = 'button';
+    const el = document.createElement('div');
+    el.tabIndex = 0;
     el.className = 'de nav off';
     zone.appendChild(el);
     dice.push({ el: el, v: 1, kept: false, locked: false });
@@ -846,6 +862,8 @@ body.sans-voix .nav:focus { outline: none; }
       if (lecteur()) {
         await dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : ''));
         if (!vivant(tk)) return;
+        await attendre(250);
+        if (!vivant(tk)) return;
         focusSilencieux($('gobelet'));
       } else {
         focusSilencieux($('gobelet'));
@@ -910,7 +928,7 @@ body.sans-voix .nav:focus { outline: none; }
     if (!vivant(tk)) return;
     jouer(sonTousGardes);
     msg('Tous les dés sont gardés !');
-    await attendre(1500);
+    await attendre(2500);
     if (!vivant(tk)) return;
     reinitDes();
     msg('');
@@ -966,7 +984,10 @@ body.sans-voix .nav:focus { outline: none; }
     if (d.kept && toutGarde()) {
       const tk = G.token;
       if (scoreOf(valeurs(gardes())) >= 10000) { banque(tk).catch(function () { }); return; }
-      relanceAuto(tk).then(function () { if (vivant(tk)) return lancerHumain(libres(), tk); }).catch(function () { });
+      G.busy = true;
+      const sc = G.bank + scoreOf(valeurs(gardes()));
+      dire('Score ' + nombre(sc)).then(function () { if (vivant(tk)) return relanceAuto(tk); })
+        .then(function () { if (vivant(tk)) return lancerHumain(libres(), tk); }).catch(function () { });
       return;
     }
     dire('Score ' + nombre(turnScore()));
@@ -1058,7 +1079,7 @@ body.sans-voix .nav:focus { outline: none; }
     construireFin();
     show('fin');
     jouer(sonVictoire);
-    await attendre(2800);
+    await attendre(3600);
     if (!vivant(tk)) return;
     await dire('Fin de la partie. ' + l.map(function (x) { return x.n + ', ' + nombre(x.s) + ' points.'; }).join(' ') + ' ' + l[0].n + ' a gagné !');
     G.busy = false;
@@ -1246,7 +1267,7 @@ body.sans-voix .nav:focus { outline: none; }
      Le clavier (flèches + OK) est géré par le jeu lui-même. */
   if (lecteur()) {
     Array.prototype.forEach.call(document.querySelectorAll('.nav'), function (el) {
-      if (el.tagName !== 'INPUT') el.setAttribute('role', 'text');
+      if (el.tagName !== 'INPUT') el.setAttribute('role', 'group');
     });
   }
 

@@ -97,7 +97,7 @@ jobs:
                   </intent>
               </queries>
               <application
-                  android:label="Farkle"
+                  android:label="Farkeul"
                   android:allowBackup="false"
                   android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
                   <activity

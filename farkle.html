@@ -1263,6 +1263,47 @@ body.sans-voix .nav:focus { outline: none; }
   });
   document.addEventListener('keyup', function (e) { if (e.key === ' ') e.preventDefault(); });
 
+  /* ---------- Manette de jeu (Bluetooth ou USB) ----------
+     Croix directionnelle ou joystick gauche = flèches, bouton A = OK, bouton B = retour sur Lancer. Si l'appareil envoie déjà ces actions
+     comme des touches du clavier, la manette n'ajoute rien (pas de double déplacement). */
+  let touchePhys = 0;
+  document.addEventListener('keydown', function (e) { if (e.isTrusted) touchePhys = Date.now(); }, true);
+  const memManette = {};
+  let boucleManette = false;
+  function envoyerTouche(key) {
+    const t0 = Date.now();
+    setTimeout(function () {
+      if (touchePhys >= t0 - 40) return;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true, cancelable: true }));
+    }, 80);
+  }
+  function lireManettes() {
+    const liste = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (let g = 0; g < liste.length; g++) {
+      const gp = liste[g];
+      if (!gp || !gp.connected) continue;
+      const b = function (i) { return !!(gp.buttons[i] && gp.buttons[i].pressed); };
+      const ax = gp.axes || [];
+      const etat = {
+        ArrowUp: b(12) || ax[1] < -0.6, ArrowDown: b(13) || ax[1] > 0.6,
+        ArrowLeft: b(14) || ax[0] < -0.6, ArrowRight: b(15) || ax[0] > 0.6,
+        Enter: b(0), Lancer: b(1)
+      };
+      const mem = memManette[gp.index] || (memManette[gp.index] = {});
+      Object.keys(etat).forEach(function (k) {
+        if (etat[k] && !mem[k]) {
+          if (k === 'Lancer') { const gob = $('gobelet'); if (gob.getClientRects().length) gob.focus(); }
+          else envoyerTouche(k);
+        }
+        mem[k] = etat[k];
+      });
+    }
+    requestAnimationFrame(lireManettes);
+  }
+  function demarrerManette() { if (!boucleManette) { boucleManette = true; requestAnimationFrame(lireManettes); } }
+  window.addEventListener('gamepadconnected', demarrerManette);
+  try { if (navigator.getGamepads && Array.prototype.some.call(navigator.getGamepads(), Boolean)) demarrerManette(); } catch (e) { /* rien */ }
+
   /* ---------- Démarrage ---------- */
   reconstruireScores();
   majReglages();

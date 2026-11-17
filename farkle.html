@@ -538,7 +538,7 @@ body.sans-cadre .nav:focus { outline: none; }
   function prononce(t) {
     const MOTS = ['', 'un', 'deux', 'trois', 'quatre'];
     /* Le prénom est écrit autrement pour la voix seulement (l'écran ne change pas). */
-    const texte = String(t).replace(/Vanessa/gi, 'Vanèssa');
+    const texte = String(t).replace(/Vanessa/gi, 'Vanaiça');
     return texte
       .replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; })
       .replace(/(Joueur|Débutant|Initié|Pro|Expert|participant|Participant) ([1-4])(?![0-9])/g, function (m, a, n) { return a + ' ' + MOTS[+n]; });

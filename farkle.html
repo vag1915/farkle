@@ -537,13 +537,8 @@ body.sans-cadre .nav:focus { outline: none; }
   /* Prononciation : « farkle » est lu comme du français ; on l'écrit « farkeul » pour la voix seulement. */
   function prononce(t) {
     const MOTS = ['', 'un', 'deux', 'trois', 'quatre'];
-    let texte = String(t);
-    /* Un espace après le prénom évite un défaut de volume sur la voix du SensePlayer (voix seulement). */
-    reg.joueurs.forEach(function (p) {
-      if (p.type === 'humain' && p.nom) {
-        texte = texte.replace(new RegExp(p.nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[^ ]|$)', 'g'), p.nom + ' ');
-      }
-    });
+    /* Le prénom est écrit autrement pour la voix seulement (l'écran ne change pas). */
+    const texte = String(t).replace(/Vanessa/gi, 'Vanèssa');
     return texte
       .replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; })
       .replace(/(Joueur|Débutant|Initié|Pro|Expert|participant|Participant) ([1-4])(?![0-9])/g, function (m, a, n) { return a + ' ' + MOTS[+n]; });

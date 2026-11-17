@@ -31,7 +31,7 @@ body {
 button { font: 700 18px var(--police); color: var(--blanc); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .nav:focus { outline: 6px solid var(--focus); outline-offset: 3px; }
 .nav:focus:not(:focus-visible) { outline: 6px solid var(--focus); outline-offset: 3px; }
-body.sans-voix .nav:focus { outline: none; }
+body.sans-cadre .nav:focus { outline: none; }
 .saisie { width: 100%; font: 700 20px var(--police); color: var(--blanc); background: var(--noir); border: 3px solid var(--blanc); border-radius: 12px; padding: 12px 18px; min-height: 58px; }
 
 .ecran { height: 100%; max-width: 900px; margin: 0 auto; background: var(--noir); display: flex; flex-direction: column; overflow: hidden; }
@@ -465,6 +465,7 @@ body.sans-voix .nav:focus { outline: none; }
   const reg = {
     nb: 2,
     voix: true,
+    cadres: true,
     joueurs: [
       { type: 'humain', niveau: 'Intermédiaire', nom: 'Vanessa' },
       { type: 'robot', niveau: 'Intermédiaire', nom: '' },
@@ -478,6 +479,7 @@ body.sans-voix .nav:focus { outline: none; }
       if (!s) return;
       if (s.nb >= 1 && s.nb <= 4) reg.nb = s.nb | 0;
       if (typeof s.voix === 'boolean') reg.voix = s.voix;
+      if (typeof s.cadres === 'boolean') reg.cadres = s.cadres;
       if (Array.isArray(s.joueurs)) {
         s.joueurs.slice(0, 4).forEach(function (p, i) {
           if (p && (p.type === 'humain' || p.type === 'robot')) reg.joueurs[i].type = p.type;
@@ -489,12 +491,13 @@ body.sans-voix .nav:focus { outline: none; }
   })();
   function sauver() { try { localStorage.setItem(CLE, JSON.stringify(reg)); } catch (e) { /* tant pis */ } }
 
+  const affNiv = (n) => (n === 'Intermédiaire' ? 'Initié' : n);
   function nom(i) {
     const p = reg.joueurs[i], t = p.type;
     if (t === 'humain' && p.nom) return p.nom;
     let n = 0;
-    for (let k = 0; k <= i; k++) if (reg.joueurs[k].type === t) n++;
-    return (t === 'robot' ? 'Robot ' : 'Joueur ') + n;
+    for (let k = 0; k <= i; k++) if (reg.joueurs[k].type === t && (t !== 'robot' || reg.joueurs[k].niveau === p.niveau)) n++;
+    return (t === 'robot' ? affNiv(p.niveau) : 'Joueur') + ' ' + n;
   }
   const nombre = (n) => (n < 0 ? 'moins ' + (-n) : String(n));
   const chiffres = (vals) => vals.join(', ');
@@ -534,9 +537,16 @@ body.sans-voix .nav:focus { outline: none; }
   /* Prononciation : « farkle » est lu comme du français ; on l'écrit « farkeul » pour la voix seulement. */
   function prononce(t) {
     const MOTS = ['', 'un', 'deux', 'trois', 'quatre'];
-    return String(t)
+    let texte = String(t);
+    /* Un espace après le prénom évite un défaut de volume sur la voix du SensePlayer (voix seulement). */
+    reg.joueurs.forEach(function (p) {
+      if (p.type === 'humain' && p.nom) {
+        texte = texte.replace(new RegExp(p.nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[^ ]|$)', 'g'), p.nom + ' ');
+      }
+    });
+    return texte
       .replace(/farkle(s?)/gi, function (m, pl) { return (m.charAt(0) === 'F' ? 'F' : 'f') + 'arkeul' + pl; })
-      .replace(/\b(Robot|Joueur|participant|Participant) ([1-4])\b/g, function (m, a, n) { return a + ' ' + MOTS[+n]; });
+      .replace(/(Joueur|Débutant|Initié|Pro|Expert|participant|Participant) ([1-4])(?![0-9])/g, function (m, a, n) { return a + ' ' + MOTS[+n]; });
   }
   function dire(texte, opt) {
     opt = opt || {};
@@ -1095,6 +1105,7 @@ body.sans-voix .nav:focus { outline: none; }
   function show(v) {
     VUES.forEach(function (x) { $('v-' + x).hidden = x !== v; });
     $('haut').hidden = !(v === 'accueil' || v === 'partie');
+    $('scores').hidden = v !== 'partie';
     if (v === 'partie') { disposer(); placerDouble(); }
   }
   function abandonner() {
@@ -1144,6 +1155,7 @@ body.sans-voix .nav:focus { outline: none; }
     rNiv.push(btnReglage('r-niv-' + i));
   }
   const rVoix = btnReglage('r-voix');
+  const rCadres = btnReglage('r-cadres');
   let edition = null;
   function majReglages() {
     rNb.textContent = 'Nombre de joueurs : ' + reg.nb;
@@ -1159,12 +1171,14 @@ body.sans-voix .nav:focus { outline: none; }
       rIn[i].hidden = edition !== i;
       lab(rIn[i], 'Nom du participant ' + (i + 1) + '. Saisissez le nom puis validez.');
       rNiv[i].hidden = i >= reg.nb || !robot;
-      rNiv[i].textContent = 'Niveau : ' + p.niveau;
-      lab(rNiv[i], 'Niveau du participant ' + (i + 1) + ', ' + p.niveau.toLowerCase());
+      rNiv[i].textContent = 'Niveau : ' + affNiv(p.niveau);
+      lab(rNiv[i], 'Niveau du participant ' + (i + 1) + ', ' + affNiv(p.niveau).toLowerCase());
     }
     rVoix.textContent = 'Voix : ' + (reg.voix ? 'activée' : 'désactivée');
     lab(rVoix, 'Voix, ' + (reg.voix ? 'activée' : 'désactivée'));
-    document.body.classList.toggle('sans-voix', !reg.voix);
+    rCadres.textContent = 'Encadrés jaunes : ' + (reg.cadres ? 'activés' : 'désactivés');
+    lab(rCadres, 'Encadrés jaunes, ' + (reg.cadres ? 'activés' : 'désactivés'));
+    document.body.classList.toggle('sans-cadre', !reg.cadres);
   }
   function changer(el, fn, opt) {
     surClic(el, function () {
@@ -1184,6 +1198,12 @@ body.sans-voix .nav:focus { outline: none; }
     sauver();
     majReglages();
     dire(rVoix.getAttribute('data-parle'), { force: true });
+  });
+  surClic(rCadres, function () {
+    reg.cadres = !reg.cadres;
+    sauver();
+    majReglages();
+    dire(rCadres.getAttribute('data-parle'));
   });
   function debutEdition(i) {
     edition = i;
@@ -1242,6 +1262,11 @@ body.sans-voix .nav:focus { outline: none; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const act = document.activeElement;
     if (act && act.tagName === 'INPUT' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    if (!e.repeat && (e.key === '4' || e.key === '5' || e.key === '6')) {
+      e.preventDefault();
+      raccourci(e.key === '4' ? 'lancer' : e.key === '6' ? 'stop' : 'params');
+      return;
+    }
     const items = navItems();
     const i = items.indexOf(document.activeElement);
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -1263,8 +1288,19 @@ body.sans-voix .nav:focus { outline: none; }
   });
   document.addEventListener('keyup', function (e) { if (e.key === ' ') e.preventDefault(); });
 
+  /* ---------- Raccourcis ---------- */
+  function raccourci(nomR) {
+    const vue = function (v) { return !$('v-' + v).hidden; };
+    if (nomR === 'lancer') { if (vue('partie')) $('gobelet').click(); }
+    else if (nomR === 'stop') { if (vue('partie')) $('stop').click(); }
+    else if (nomR === 'params') {
+      if (vue('reglages')) $('ok-reglages').click();
+      else if (vue('accueil') || vue('partie')) $('engrenage').click();
+    }
+  }
+
   /* ---------- Manette de jeu (Bluetooth ou USB) ----------
-     Croix directionnelle ou joystick gauche = flèches, bouton A = OK, bouton B = retour sur Lancer. Si l'appareil envoie déjà ces actions
+     Croix directionnelle ou joystick gauche = flèches. Boutons selon leur position (Retroid Pocket 5) : droite (A) = OK, bas (B) = retour sur Lancer, haut (X) = STOP, gauche (Y) = paramètres. Si l'appareil envoie déjà ces actions
      comme des touches du clavier, la manette n'ajoute rien (pas de double déplacement). */
   let touchePhys = 0;
   document.addEventListener('keydown', function (e) { if (e.isTrusted) touchePhys = Date.now(); }, true);
@@ -1287,12 +1323,14 @@ body.sans-voix .nav:focus { outline: none; }
       const etat = {
         ArrowUp: b(12) || ax[1] < -0.6, ArrowDown: b(13) || ax[1] > 0.6,
         ArrowLeft: b(14) || ax[0] < -0.6, ArrowRight: b(15) || ax[0] > 0.6,
-        Enter: b(0), Lancer: b(1)
+        Enter: b(1), Lancer: b(0), Stop: b(3), Params: b(2)
       };
       const mem = memManette[gp.index] || (memManette[gp.index] = {});
       Object.keys(etat).forEach(function (k) {
         if (etat[k] && !mem[k]) {
           if (k === 'Lancer') { const gob = $('gobelet'); if (gob.getClientRects().length) gob.focus(); }
+          else if (k === 'Stop') raccourci('stop');
+          else if (k === 'Params') raccourci('params');
           else envoyerTouche(k);
         }
         mem[k] = etat[k];

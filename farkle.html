@@ -43,17 +43,18 @@ body.sans-cadre .nav:focus { outline: none; }
 .engrenage { background: none; border: 0; padding: 4px; width: 56px; height: 56px; border-radius: 10px; flex: none; }
 .engrenage svg { width: 100%; height: 100%; display: block; }
 
-.gros { background: var(--rouge); color: var(--blanc); border: 0; border-radius: 20px; padding: 30px 24px; width: min(100%, 420px); font-size: clamp(24px, 6vw, 34px); letter-spacing: 0.03em; }
-.gros:active { filter: brightness(1.25); }
+.gros { background: radial-gradient(ellipse at 50% 18%, #ff8f8f 0%, #d90012 48%, #8f000d 100%); color: var(--blanc); border: 0; border-radius: 50%; padding: 52px 28px; width: min(100%, 420px); font-size: clamp(24px, 6vw, 34px); letter-spacing: 0.03em; box-shadow: 0 9px 0 #5a0008, 0 16px 20px rgba(0, 0, 0, 0.8), inset 0 5px 8px rgba(255, 255, 255, 0.5), inset 0 -8px 12px rgba(0, 0, 40, 0.45); transition: transform 0.08s, box-shadow 0.08s; }
+.gros small { display: block; font-size: 16px; letter-spacing: 0; font-weight: 700; margin-top: 2px; }
+.gros:active { transform: translateY(6px); box-shadow: 0 3px 0 #5a0008, 0 6px 8px rgba(0, 0, 0, 0.8), inset 0 5px 8px rgba(255, 255, 255, 0.5), inset 0 -8px 12px rgba(0, 0, 40, 0.45); }
 
 #v-partie { justify-content: center; gap: 10px; padding-bottom: 12px; container-type: size; }
 .infos { text-align: center; padding: 0 12px; }
 .tour { font-size: 17px; }
 .score-tour { font-size: 38px; line-height: 1.1; display: inline-block; padding: 0 14px; border-radius: 8px; }
-.rail { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.piste { position: relative; flex: 1; min-width: 0; aspect-ratio: 2 / 1; border: 7px solid var(--rail); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #1b9248 0%, var(--piste) 55%, #0e5a2b 100%); box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55); }
+.rail { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; }
+.piste { position: relative; flex: none; aspect-ratio: 1 / 1; height: max(150px, min(60vh, 320px)); border: 7px solid var(--rail); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #1b9248 0%, var(--piste) 55%, #0e5a2b 100%); box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55); }
 @supports (width: 1cqh) {
-  .piste { max-height: max(150px, calc(100cqh - 230px)); }
+  .piste { height: max(150px, calc(100cqh - 200px)); }
 }
 .zone { position: absolute; inset: 0; }
 .ico { background: none; border: 0; padding: 0; width: 84px; height: 84px; flex: none; border-radius: 14px; }
@@ -62,8 +63,10 @@ body.sans-cadre .nav:focus { outline: none; }
 
 .de { position: absolute; left: 0; top: 0; width: var(--sz, 40px); height: var(--sz, 40px); background: var(--noir); border: 2px solid #555; border-radius: 18%; padding: 0; display: block; appearance: none; transition: transform 0.17s ease-out; }
 .de svg { width: 100%; height: 100%; display: block; pointer-events: none; }
-.de.kept { box-shadow: 0 0 0 3px var(--blanc); border-color: var(--blanc); }
-.de.locked { opacity: 0.6; }
+#stop svg { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.8)); transition: transform 0.08s; }
+#stop:active svg { transform: translateY(3px) scale(0.97); }
+.de.kept, .de.locked { background: #8a0f1c; border-color: #c0505c; }
+.de.locked { opacity: 0.75; }
 .de.off { display: none; }
 .de:focus { outline-offset: 5px; }
 
@@ -76,11 +79,12 @@ body.sans-cadre .nav:focus { outline: none; }
 .ok { width: 100%; }
 .liste { display: flex; flex-direction: column; gap: 8px; font-size: 20px; }
 .liste > div { padding: 4px 8px; border-radius: 8px; }
+.info-fin { font-size: 20px; text-align: center; padding: 6px 8px; border-radius: 8px; }
 .gagnant { font-size: clamp(28px, 7vw, 42px); text-align: center; text-transform: uppercase; padding: 20px 8px; line-height: 1.15; border-radius: 10px; }
 
 @media (max-width: 640px) {
   .rail { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "piste piste" "gobelet stop"; gap: 10px 16px; justify-items: center; padding: 0 12px; }
-  .rail .piste { grid-area: piste; width: 100%; aspect-ratio: 1 / 1; max-height: none; }
+  .rail .piste { grid-area: piste; width: 100%; aspect-ratio: 1 / 1; height: auto; max-height: none; }
   #gobelet { grid-area: gobelet; }
   #stop { grid-area: stop; }
 }
@@ -149,10 +153,17 @@ body.sans-cadre .nav:focus { outline: none; }
         </svg>
       </button>
       <div class="piste"><div class="zone" id="zone"></div></div>
-      <button class="ico nav" id="stop" type="button" aria-label="Stop" data-parle="Stop">
-        <svg viewBox="0 0 60 60" aria-hidden="true">
-          <polygon points="17.57,2 42.43,2 58,17.57 58,42.43 42.43,58 17.57,58 2,42.43 2,17.57" fill="#d90012" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-          <text x="30" y="35.5" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="15" fill="#fff">STOP</text>
+      <button class="ico nav" id="stop" type="button" aria-label="Valider" data-parle="Valider">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="v-coche" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#9dffb8"/><stop offset="0.45" stop-color="#25c85a"/><stop offset="1" stop-color="#0a7a30"/>
+            </linearGradient>
+          </defs>
+          <path d="M9 34 L25 50 L55 13" fill="none" stroke="#1c5a30" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 5)"/>
+          <path d="M9 34 L25 50 L55 13" fill="none" stroke="#0b6a2a" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 2)"/>
+          <path d="M9 34 L25 50 L55 13" fill="none" stroke="url(#v-coche)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 34 L25 50 L55 13" fill="none" stroke="#fff" stroke-opacity="0.6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(-1 -3)"/>
         </svg>
       </button>
     </div>
@@ -171,6 +182,7 @@ body.sans-cadre .nav:focus { outline: none; }
     <div class="corps">
       <div class="liste" id="liste-fin"></div>
       <div class="gagnant nav" id="gagnant" tabindex="0" role="group"></div>
+      <div class="info-fin nav" id="info-fin" tabindex="0" role="group" hidden></div>
     </div>
     <div class="bas"><button class="btn ok nav" id="ok-fin" type="button" aria-label="OK" data-parle="OK">OK</button></div>
   </div>
@@ -466,6 +478,7 @@ body.sans-cadre .nav:focus { outline: none; }
     nb: 2,
     voix: true,
     cadres: true,
+    mode: 'classique',
     joueurs: [
       { type: 'humain', niveau: 'Intermédiaire', nom: 'Vanessa' },
       { type: 'robot', niveau: 'Intermédiaire', nom: '' },
@@ -480,6 +493,7 @@ body.sans-cadre .nav:focus { outline: none; }
       if (s.nb >= 1 && s.nb <= 4) reg.nb = s.nb | 0;
       if (typeof s.voix === 'boolean') reg.voix = s.voix;
       if (typeof s.cadres === 'boolean') reg.cadres = s.cadres;
+      if (s.mode === 'defi' || s.mode === 'classique') reg.mode = s.mode;
       if (Array.isArray(s.joueurs)) {
         s.joueurs.slice(0, 4).forEach(function (p, i) {
           if (p && (p.type === 'humain' || p.type === 'robot')) reg.joueurs[i].type = p.type;
@@ -489,6 +503,10 @@ body.sans-cadre .nav:focus { outline: none; }
       }
     } catch (e) { /* réglages par défaut */ }
   })();
+  const CLE_DEFI = 'farkle-defi-v1';
+  let etapeDefi = 0;
+  try { etapeDefi = Math.max(0, Math.min(6, parseInt(localStorage.getItem(CLE_DEFI), 10) || 0)); } catch (e) { /* rien */ }
+  function sauverEtape() { try { localStorage.setItem(CLE_DEFI, String(etapeDefi)); } catch (e) { /* rien */ } }
   function sauver() { try { localStorage.setItem(CLE, JSON.stringify(reg)); } catch (e) { /* tant pis */ } }
 
   const affNiv = (n) => (n === 'Intermédiaire' ? 'Initié' : n);
@@ -749,7 +767,7 @@ body.sans-cadre .nav:focus { outline: none; }
   }
   function mesurer() {
     const W = zone.clientWidth, H = zone.clientHeight;
-    sz = Math.max(12, Math.min(W * 0.92 / 6 * 0.92, 90, H * 0.6));
+    sz = Math.max(12, Math.min(W * 0.88 / 6 * 0.9, 90));
     zone.style.setProperty('--sz', sz + 'px');
   }
   function pointDansPiste(W, H) {
@@ -759,7 +777,7 @@ body.sans-cadre .nav:focus { outline: none; }
   }
   function poserXY(d, x, y, r) { d.el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + r + 'deg)'; }
   function aligner1(i) {
-    const W = zone.clientWidth, rowW = W * 0.92, slot = rowW / 6;
+    const W = zone.clientWidth, rowW = W * 0.88, slot = rowW / 6;
     poserXY(dice[i], (W - rowW) / 2 + i * slot + (slot - sz) / 2, (zone.clientHeight - sz) / 2, 0);
   }
   function disposer() {
@@ -1084,12 +1102,25 @@ body.sans-cadre .nav:focus { outline: none; }
     G.enCours = false; G.busy = true;
     const l = classement();
     construireFin();
+    const inf = $('info-fin'), okb = $('ok-fin');
+    let vocal = '';
+    inf.hidden = true; defiSuite = false;
+    okb.textContent = 'OK'; lab(okb, 'OK');
+    if (enDefi) {
+      const gagne = l[0].i === 0, e = etapeDefi, dernier = e >= DEFIS.length - 1;
+      let info;
+      if (gagne && dernier) { etapeDefi = 0; $('gagnant').textContent = 'GRANDE CHAMPIONNE !'; lab($('gagnant'), 'Grande championne'); info = 'Tu as battu tous les adversaires du défi.'; vocal = ' Bravo ! Tu es la grande championne !'; }
+      else if (gagne) { etapeDefi++; defiSuite = true; info = 'Étape ' + (e + 1) + ' réussie. Prochaine étape : ' + (e + 2) + ' sur ' + DEFIS.length + '.'; vocal = ' Étape réussie. Prochaine étape, ' + (e + 2) + ' sur ' + DEFIS.length + '.'; okb.textContent = 'Étape suivante'; lab(okb, 'Étape suivante'); }
+      else { etapeDefi = 0; info = 'Perdu à l’étape ' + (e + 1) + '. Le défi recommence.'; vocal = ' Perdu. Le défi recommence.'; }
+      sauverEtape();
+      inf.textContent = info; lab(inf, info); inf.hidden = false;
+    }
     show('fin');
     focusSilencieux($('ok-fin'));
     jouer(sonVictoire);
     await attendre(3600);
     if (!vivant(tk)) return;
-    await dire('Fin de la partie. ' + l.map(function (x) { return x.n + ', ' + nombre(x.s) + ' points.'; }).join(' ') + ' ' + l[0].n + ' a gagné !');
+    await dire('Fin de la partie. ' + l.map(function (x) { return x.n + ', ' + nombre(x.s) + ' points.'; }).join(' ') + ' ' + l[0].n + ' a gagné !' + vocal);
     G.busy = false;
   }
 
@@ -1112,23 +1143,66 @@ body.sans-cadre .nav:focus { outline: none; }
     G.scores.fill(0); G.farkles.fill(0); G.cur = 0; G.dernier = null;
     reconstruireScores();
   }
-  function nouvellePartie() {
-    try { if (!RAPIDE) ac(); } catch (e) { /* sans son */ }
+  const DEFIS = [['Débutant'], ['Intermédiaire'], ['Pro'], ['Débutant', 'Intermédiaire'], ['Intermédiaire', 'Pro'], ['Expert'], ['Pro', 'Expert']];
+  let sauvegardeReg = null, enDefi = false;
+  function restaurerReg() {
+    if (sauvegardeReg) {
+      reg.nb = sauvegardeReg.nb;
+      sauvegardeReg.joueurs.forEach(function (p, i) { reg.joueurs[i].type = p.type; reg.joueurs[i].niveau = p.niveau; reg.joueurs[i].nom = p.nom; });
+    }
+    sauvegardeReg = null; enDefi = false;
+  }
+  function majAccueil() {
+    const n = $('nouvelle'), m = reg.mode === 'defi' ? 'défi' + (etapeDefi > 0 ? ', étape ' + (etapeDefi + 1) + ' sur ' + DEFIS.length : '') : 'classique';
+    n.innerHTML = 'NOUVELLE PARTIE<small>Mode ' + m + '</small>';
+    lab(n, 'Nouvelle partie, mode ' + m);
+  }
+  async function demarrerPartie(intro) {
     abandonner();
     remiseAZero();
     G.enCours = true;
     show('partie');
-    if (NIVEAUX.length && reg.joueurs.slice(0, reg.nb).some(function (p) { return p.type === 'robot' && (p.niveau === 'Pro' || p.niveau === 'Expert'); })) {
+    const tk = G.token;
+    if (reg.joueurs.slice(0, reg.nb).some(function (p) { return p.type === 'robot' && (p.niveau === 'Pro' || p.niveau === 'Expert'); })) {
       setTimeout(prepDP, 0);
+    }
+    if (intro) {
+      msg(intro);
+      G.busy = true;
+      await dire(intro);
+      if (!vivant(tk)) return;
+      G.busy = false;
     }
     debutTour().catch(function () { /* partie abandonnée */ });
   }
+  function lancerEtapeDefi() {
+    if (!sauvegardeReg) sauvegardeReg = { nb: reg.nb, joueurs: reg.joueurs.map(function (p) { return { type: p.type, niveau: p.niveau, nom: p.nom }; }) };
+    const adv = DEFIS[etapeDefi];
+    reg.nb = 1 + adv.length;
+    reg.joueurs[0].type = 'humain';
+    adv.forEach(function (n, i) { reg.joueurs[i + 1].type = 'robot'; reg.joueurs[i + 1].niveau = n; reg.joueurs[i + 1].nom = ''; });
+    enDefi = true;
+    return demarrerPartie('Défi, étape ' + (etapeDefi + 1) + ' sur ' + DEFIS.length + ', contre ' + adv.map(affNiv).join(' et ') + '.');
+  }
+  function nouvellePartie() {
+    try { if (!RAPIDE) ac(); } catch (e) { /* sans son */ }
+    restaurerReg();
+    if (reg.mode === 'defi') { lancerEtapeDefi().catch(function () { }); return; }
+    demarrerPartie('').catch(function () { });
+  }
   function retourAccueil() {
     abandonner();
+    restaurerReg();
     remiseAZero();
     show('accueil');
+    majAccueil();
     $('nouvelle').focus();
   }
+  function suiteFin() {
+    if (enDefi && defiSuite) { defiSuite = false; lancerEtapeDefi().catch(function () { }); return; }
+    retourAccueil();
+  }
+  let defiSuite = false;
 
   /* ---------- Paramètres ---------- */
   function btnReglage(id) {
@@ -1137,6 +1211,7 @@ body.sans-cadre .nav:focus { outline: none; }
     $('r-liste').appendChild(b);
     return b;
   }
+  const rMode = btnReglage('r-mode'), rEtape = btnReglage('r-etape');
   const rNb = btnReglage('r-nb');
   const rType = [], rNom = [], rIn = [], rNiv = [];
   for (let i = 0; i < 4; i++) {
@@ -1152,20 +1227,29 @@ body.sans-cadre .nav:focus { outline: none; }
   const rVoix = btnReglage('r-voix');
   const rCadres = btnReglage('r-cadres');
   let edition = null;
+  const MODE_TXT = { classique: 'Classique', defi: 'Défi' };
   function majReglages() {
+    const defi = reg.mode === 'defi';
+    rMode.textContent = 'Mode : ' + MODE_TXT[reg.mode];
+    lab(rMode, 'Mode, ' + MODE_TXT[reg.mode].toLowerCase());
+    rEtape.hidden = !(defi && etapeDefi > 0);
+    rEtape.textContent = 'Recommencer le défi (étape ' + (etapeDefi + 1) + ')';
+    lab(rEtape, 'Recommencer le défi depuis le début. Vous êtes à l’étape ' + (etapeDefi + 1));
+    rNb.hidden = defi;
     rNb.textContent = 'Nombre de joueurs : ' + reg.nb;
     lab(rNb, 'Nombre de joueurs, ' + reg.nb);
     for (let i = 0; i < 4; i++) {
       const p = reg.joueurs[i], robot = p.type === 'robot';
-      rType[i].hidden = i >= reg.nb;
+      const absent = defi ? i > 0 : i >= reg.nb;
+      rType[i].hidden = absent || (defi && i === 0);
       rType[i].textContent = 'Participant ' + (i + 1) + ' : ' + (robot ? 'Robot' : 'Humain');
       lab(rType[i], 'Participant ' + (i + 1) + ', ' + (robot ? 'robot' : 'humain'));
-      rNom[i].hidden = i >= reg.nb || robot || edition === i;
+      rNom[i].hidden = absent || (robot && !defi) || edition === i;
       rNom[i].textContent = 'Nom : ' + nom(i);
       lab(rNom[i], 'Nom du participant ' + (i + 1) + ', ' + nom(i));
       rIn[i].hidden = edition !== i;
       lab(rIn[i], 'Nom du participant ' + (i + 1) + '. Saisissez le nom puis validez.');
-      rNiv[i].hidden = i >= reg.nb || !robot;
+      rNiv[i].hidden = absent || !robot || defi;
       rNiv[i].textContent = 'Niveau : ' + affNiv(p.niveau);
       lab(rNiv[i], 'Niveau du participant ' + (i + 1) + ', ' + affNiv(p.niveau).toLowerCase());
     }
@@ -1183,6 +1267,8 @@ body.sans-cadre .nav:focus { outline: none; }
       dire(el.getAttribute('data-parle'), opt);
     });
   }
+  changer(rMode, function () { reg.mode = reg.mode === 'defi' ? 'classique' : 'defi'; });
+  surClic(rEtape, function () { etapeDefi = 0; sauverEtape(); majReglages(); dire('Défi remis au début.'); focusSilencieux(rMode); });
   changer(rNb, function () { reg.nb = reg.nb % 4 + 1; });
   for (let i = 0; i < 4; i++) {
     changer(rType[i], function () { reg.joueurs[i].type = reg.joueurs[i].type === 'robot' ? 'humain' : 'robot'; });
@@ -1227,10 +1313,11 @@ body.sans-cadre .nav:focus { outline: none; }
   }
   function ouvrirReglages() {
     abandonner();
+    restaurerReg();
     majReglages();
     show('reglages');
-    focusSilencieux(rNb);
-    dire('Paramètres. ' + rNb.getAttribute('data-parle'));
+    focusSilencieux(rMode);
+    dire('Paramètres. ' + rMode.getAttribute('data-parle'));
   }
 
   surClic($('nouvelle'), nouvellePartie);
@@ -1238,7 +1325,7 @@ body.sans-cadre .nav:focus { outline: none; }
   surClic($('gobelet'), actionGobelet);
   surClic($('stop'), actionStop);
   surClic($('ok-reglages'), function () { sauver(); retourAccueil(); });
-  surClic($('ok-fin'), retourAccueil);
+  surClic($('ok-fin'), suiteFin);
 
   /* =====================================================================
      NAVIGATION AU CLAVIER (flèches + OK) ET LECTURE DE L'ÉLÉMENT ACTIF
@@ -1323,7 +1410,7 @@ body.sans-cadre .nav:focus { outline: none; }
       const mem = memManette[gp.index] || (memManette[gp.index] = {});
       Object.keys(etat).forEach(function (k) {
         if (etat[k] && !mem[k]) {
-          if (k === 'Lancer') { const gob = $('gobelet'); if (gob.getClientRects().length) gob.focus(); }
+          if (k === 'Lancer') { const gob = $('gobelet'); if (gob.getClientRects().length) { gob.focus(); gob.click(); } }
           else if (k === 'Stop') raccourci('stop');
           else if (k === 'Params') raccourci('params');
           else envoyerTouche(k);
@@ -1340,7 +1427,9 @@ body.sans-cadre .nav:focus { outline: none; }
   /* ---------- Démarrage ---------- */
   reconstruireScores();
   majReglages();
+  majAccueil();
   show('accueil');
+  try { if (!RAPIDE && natif()) ac(); } catch (e) { /* sans son */ }
   /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
      Le clavier (flèches + OK) est géré par le jeu lui-même. */
   /* Lecteur d'écran : le lecteur parcourt les éléments dans l'ordre de la page. Un second « Lancer »,

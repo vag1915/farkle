@@ -348,11 +348,11 @@ body.sans-cadre .nav:focus { outline: none; }
   }
   /* Lancer : arpège descendant au piano, une note par dé lancé. */
   function sonLancer(n) {
-    const t = AC.currentTime + 0.02;
-    const gamme = [91, 88, 84, 79, 76, 72];
+    const t = AC.currentTime + 0.02, g = [76, 72, 69, 64, 60, 57];
     for (let i = 0; i < n; i++) {
-      const dernier = i === n - 1;
-      piano(t + i * 0.085, gamme[i], 0.95 - 0.35 * (i / 5), dernier ? 1.8 : 1.1);
+      const f = midiHz(g[i]), tt = t + i * 0.11, d = i === n - 1 ? 1.8 : 1.0;
+      tone(tt, f, f, 'sine', 0.3, d, 0.006, 0.3);
+      tone(tt, f * 2.01, f * 2.01, 'sine', 0.08, d * 0.5, 0.006, 0.3);
     }
   }
   function cuivre(t, midi, vel, dur) {
@@ -576,7 +576,7 @@ body.sans-cadre .nav:focus { outline: none; }
           const id = String(++ttsId);
           ttsAttente[id] = fin;
           window.AndroidTTS.speak(texte, id, !!opt.ajouter);
-          setTimeout(fin, lecteur() ? estimer(texte) : 1800 + texte.length * 110);
+          setTimeout(fin, lecteur() ? Math.round(estimer(texte) * (opt.ratio || 1)) : 1800 + texte.length * 110);
           return;
         }
         speechSynthesis.cancel();
@@ -885,9 +885,9 @@ body.sans-cadre .nav:focus { outline: none; }
     } else {
       G.busy = false;
       if (lecteur()) {
-        await dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : ''));
+        await dire('Tour de ' + nom(G.cur) + (dt ? '. Dernier tour' : ''), { ratio: 0.7 });
         if (!vivant(tk)) return;
-        await attendre(250);
+        await attendre(40);
         if (!vivant(tk)) return;
         focusSilencieux($('gobelet'));
       } else {
@@ -1429,6 +1429,7 @@ body.sans-cadre .nav:focus { outline: none; }
   majReglages();
   majAccueil();
   show('accueil');
+  setTimeout(function () { try { $('nouvelle').focus(); } catch (e) { /* rien */ } }, 400);
   try { if (!RAPIDE && natif()) ac(); } catch (e) { /* sans son */ }
   /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
      Le clavier (flèches + OK) est géré par le jeu lui-même. */

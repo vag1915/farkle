@@ -1190,13 +1190,18 @@ body.sans-cadre .nav:focus { outline: none; }
     if (reg.mode === 'defi') { lancerEtapeDefi().catch(function () { }); return; }
     demarrerPartie('').catch(function () { });
   }
+  function annonceAccueil() {
+    const n = $('nouvelle'), sm = n.querySelector('small');
+    const t = 'Nouvelle partie' + (sm ? '. ' + sm.textContent.trim() : '');
+    if (lecteur()) { focusSilencieux(n); dire(t); } else { n.focus(); dire(t); }
+  }
   function retourAccueil() {
     abandonner();
     restaurerReg();
     remiseAZero();
     show('accueil');
     majAccueil();
-    $('nouvelle').focus();
+    annonceAccueil();
   }
   function suiteFin() {
     if (enDefi && defiSuite) { defiSuite = false; lancerEtapeDefi().catch(function () { }); return; }
@@ -1429,7 +1434,7 @@ body.sans-cadre .nav:focus { outline: none; }
   majReglages();
   majAccueil();
   show('accueil');
-  setTimeout(function () { try { $('nouvelle').focus(); } catch (e) { /* rien */ } }, 400);
+  setTimeout(function () { try { annonceAccueil(); } catch (e) { /* rien */ } }, 600);
   try { if (!RAPIDE && natif()) ac(); } catch (e) { /* sans son */ }
   /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
      Le clavier (flèches + OK) est géré par le jeu lui-même. */

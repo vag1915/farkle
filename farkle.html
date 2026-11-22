@@ -82,16 +82,22 @@ body.sans-cadre .nav:focus { outline: none; }
 .info-fin { font-size: 20px; text-align: center; padding: 6px 8px; border-radius: 8px; }
 .gagnant { font-size: clamp(28px, 7vw, 42px); text-align: center; text-transform: uppercase; padding: 20px 8px; line-height: 1.15; border-radius: 10px; }
 
-@media (max-width: 640px) {
+@media (max-width: 640px), (orientation: landscape) {
   .rail { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "piste piste" "gobelet stop"; gap: 10px 16px; justify-items: center; padding: 0 12px; }
   .rail .piste { grid-area: piste; width: 100%; aspect-ratio: 1 / 1; height: auto; max-height: none; }
   #gobelet { grid-area: gobelet; }
   #stop { grid-area: stop; }
 }
 @supports (width: 1cqh) {
-  @media (max-width: 640px) {
+  @media (max-width: 640px), (orientation: landscape) {
     .rail .piste { width: min(100%, max(200px, calc(100cqh - 240px))); }
   }
+}
+/* Paysage : on garde la mise en page du portrait (écran étroit), réduite pour tenir en hauteur et centrée, avec du noir de chaque côté. */
+@media (orientation: landscape) {
+  html, body { overflow: hidden; }
+  body { padding: 0; }
+  .ecran { position: absolute; left: 50%; top: 0; width: 380px; height: 820px; max-width: none; margin: 0; transform-origin: top center; transform: translateX(-50%) scale(var(--ech, 1)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .de { transition: none; }
@@ -1190,6 +1196,14 @@ body.sans-cadre .nav:focus { outline: none; }
     if (reg.mode === 'defi') { lancerEtapeDefi().catch(function () { }); return; }
     demarrerPartie('').catch(function () { });
   }
+  function echelle() {
+    try {
+      const paysage = window.matchMedia('(orientation: landscape)').matches;
+      document.documentElement.style.setProperty('--ech', paysage ? String(Math.min(window.innerHeight / 820, window.innerWidth / 380)) : '1');
+    } catch (e) { /* rien */ }
+  }
+  window.addEventListener('resize', echelle);
+  echelle();
   function annonceAccueil() {
     const n = $('nouvelle'), sm = n.querySelector('small');
     const t = 'Nouvelle partie' + (sm ? '. ' + sm.textContent.trim() : '');
@@ -1432,6 +1446,7 @@ body.sans-cadre .nav:focus { outline: none; }
   /* ---------- Démarrage ---------- */
   reconstruireScores();
   majReglages();
+  echelle();
   majAccueil();
   show('accueil');
   setTimeout(function () { try { annonceAccueil(); } catch (e) { /* rien */ } }, 600);

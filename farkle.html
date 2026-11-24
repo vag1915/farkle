@@ -82,23 +82,22 @@ body.sans-cadre .nav:focus { outline: none; }
 .info-fin { font-size: 20px; text-align: center; padding: 6px 8px; border-radius: 8px; }
 .gagnant { font-size: clamp(28px, 7vw, 42px); text-align: center; text-transform: uppercase; padding: 20px 8px; line-height: 1.15; border-radius: 10px; }
 
-@media (max-width: 640px), (orientation: landscape) {
+@media (max-width: 640px) {
   .rail { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "piste piste" "gobelet stop"; gap: 10px 16px; justify-items: center; padding: 0 12px; }
   .rail .piste { grid-area: piste; width: 100%; aspect-ratio: 1 / 1; height: auto; max-height: none; }
   #gobelet { grid-area: gobelet; }
   #stop { grid-area: stop; }
 }
 @supports (width: 1cqh) {
-  @media (max-width: 640px), (orientation: landscape) {
+  @media (max-width: 640px) {
     .rail .piste { width: min(100%, max(200px, calc(100cqh - 240px))); }
   }
 }
-/* Paysage : on garde la mise en page du portrait (écran étroit), réduite pour tenir en hauteur et centrée, avec du noir de chaque côté. */
-@media (orientation: landscape) {
-  html, body { overflow: hidden; }
-  body { padding: 0; }
-  .ecran { position: absolute; left: 50%; top: 0; width: 380px; height: 820px; max-width: none; margin: 0; transform-origin: top center; transform: translateX(-50%) scale(var(--ech, 1)); }
-}
+/* Dés blancs à points noirs (option) */
+body.des-blancs .de { background: #fff; border-color: #888; }
+body.des-blancs .de svg circle { fill: #000; }
+body.des-blancs .de.kept, body.des-blancs .de.joker { background: #8a0f1c; }
+body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill: #fff; }
 @media (prefers-reduced-motion: reduce) {
   .de { transition: none; }
 }
@@ -484,6 +483,7 @@ body.sans-cadre .nav:focus { outline: none; }
     nb: 2,
     voix: true,
     cadres: true,
+    desBlancs: false,
     mode: 'classique',
     joueurs: [
       { type: 'humain', niveau: 'Intermédiaire', nom: 'Vanessa' },
@@ -499,6 +499,7 @@ body.sans-cadre .nav:focus { outline: none; }
       if (s.nb >= 1 && s.nb <= 4) reg.nb = s.nb | 0;
       if (typeof s.voix === 'boolean') reg.voix = s.voix;
       if (typeof s.cadres === 'boolean') reg.cadres = s.cadres;
+      if (typeof s.desBlancs === 'boolean') reg.desBlancs = s.desBlancs;
       if (s.mode === 'defi' || s.mode === 'classique') reg.mode = s.mode;
       if (Array.isArray(s.joueurs)) {
         s.joueurs.slice(0, 4).forEach(function (p, i) {
@@ -1175,6 +1176,7 @@ body.sans-cadre .nav:focus { outline: none; }
     if (intro) {
       msg(intro);
       G.busy = true;
+      if (lecteur()) { await attendre(1800); if (!vivant(tk)) return; }
       await dire(intro);
       if (!vivant(tk)) return;
       G.busy = false;
@@ -1196,18 +1198,9 @@ body.sans-cadre .nav:focus { outline: none; }
     if (reg.mode === 'defi') { lancerEtapeDefi().catch(function () { }); return; }
     demarrerPartie('').catch(function () { });
   }
-  function echelle() {
-    try {
-      const paysage = window.matchMedia('(orientation: landscape)').matches;
-      document.documentElement.style.setProperty('--ech', paysage ? String(Math.min(window.innerHeight / 820, window.innerWidth / 380)) : '1');
-    } catch (e) { /* rien */ }
-  }
-  window.addEventListener('resize', echelle);
-  echelle();
   function annonceAccueil() {
-    const n = $('nouvelle'), sm = n.querySelector('small');
-    const t = 'Nouvelle partie' + (sm ? '. ' + sm.textContent.trim() : '');
-    if (lecteur()) { focusSilencieux(n); dire(t); } else { n.focus(); dire(t); }
+    /* Le lecteur d'écran du SensePlayer annonce d'abord « lanceur » puis « vue web » : on attend qu'il ait fini. */
+    setTimeout(function () { try { $('nouvelle').focus(); } catch (e) { /* rien */ } }, lecteur() ? 2600 : 500);
   }
   function retourAccueil() {
     abandonner();
@@ -1215,7 +1208,7 @@ body.sans-cadre .nav:focus { outline: none; }
     remiseAZero();
     show('accueil');
     majAccueil();
-    annonceAccueil();
+    $('nouvelle').focus();
   }
   function suiteFin() {
     if (enDefi && defiSuite) { defiSuite = false; lancerEtapeDefi().catch(function () { }); return; }
@@ -1230,7 +1223,8 @@ body.sans-cadre .nav:focus { outline: none; }
     $('r-liste').appendChild(b);
     return b;
   }
-  const rMode = btnReglage('r-mode'), rEtape = btnReglage('r-etape');
+  const rMode = btnReglage('r-mode'), rEtape = btnReglage('r-etape'), rDes = btnReglage('r-des');
+  rMode.after(rDes);
   const rNb = btnReglage('r-nb');
   const rType = [], rNom = [], rIn = [], rNiv = [];
   for (let i = 0; i < 4; i++) {
@@ -1251,6 +1245,9 @@ body.sans-cadre .nav:focus { outline: none; }
     const defi = reg.mode === 'defi';
     rMode.textContent = 'Mode : ' + MODE_TXT[reg.mode];
     lab(rMode, 'Mode, ' + MODE_TXT[reg.mode].toLowerCase());
+    rDes.textContent = 'Dés : ' + (reg.desBlancs ? 'blancs' : 'noirs');
+    lab(rDes, 'Dés ' + (reg.desBlancs ? 'blancs' : 'noirs'));
+    document.body.classList.toggle('des-blancs', !!reg.desBlancs);
     rEtape.hidden = !(defi && etapeDefi > 0);
     rEtape.textContent = 'Recommencer le défi (étape ' + (etapeDefi + 1) + ')';
     lab(rEtape, 'Recommencer le défi depuis le début. Vous êtes à l’étape ' + (etapeDefi + 1));
@@ -1286,6 +1283,7 @@ body.sans-cadre .nav:focus { outline: none; }
       dire(el.getAttribute('data-parle'), opt);
     });
   }
+  changer(rDes, function () { reg.desBlancs = !reg.desBlancs; });
   changer(rMode, function () { reg.mode = reg.mode === 'defi' ? 'classique' : 'defi'; });
   surClic(rEtape, function () { etapeDefi = 0; sauverEtape(); majReglages(); dire('Défi remis au début.'); focusSilencieux(rMode); });
   changer(rNb, function () { reg.nb = reg.nb % 4 + 1; });
@@ -1446,10 +1444,9 @@ body.sans-cadre .nav:focus { outline: none; }
   /* ---------- Démarrage ---------- */
   reconstruireScores();
   majReglages();
-  echelle();
   majAccueil();
   show('accueil');
-  setTimeout(function () { try { annonceAccueil(); } catch (e) { /* rien */ } }, 600);
+  annonceAccueil();
   try { if (!RAPIDE && natif()) ac(); } catch (e) { /* sans son */ }
   /* Avec un lecteur d'écran : on retire le rôle « bouton » pour qu'il ne répète pas « bouton » à chaque élément.
      Le clavier (flèches + OK) est géré par le jeu lui-même. */

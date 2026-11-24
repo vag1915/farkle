@@ -52,7 +52,7 @@ body.sans-cadre .nav:focus { outline: none; }
 .tour { font-size: 17px; }
 .score-tour { font-size: 38px; line-height: 1.1; display: inline-block; padding: 0 14px; border-radius: 8px; }
 .rail { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; }
-.piste { position: relative; flex: none; aspect-ratio: 1 / 1; height: max(150px, min(60vh, 320px)); border: 7px solid var(--rail); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #1b9248 0%, var(--piste) 55%, #0e5a2b 100%); box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55); }
+.piste { position: relative; flex: none; aspect-ratio: 2.6 / 1; height: max(150px, min(60vh, 320px)); border: 7px solid var(--rail); border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #1b9248 0%, var(--piste) 55%, #0e5a2b 100%); box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.55); }
 @supports (width: 1cqh) {
   .piste { height: max(150px, calc(100cqh - 200px)); }
 }
@@ -1138,6 +1138,7 @@ body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill
   function show(v) {
     VUES.forEach(function (x) { $('v-' + x).hidden = x !== v; });
     $('haut').hidden = !(v === 'accueil' || v === 'partie');
+    $('engrenage').hidden = v !== 'accueil';
     $('scores').hidden = v !== 'partie';
     if (v === 'partie') { disposer(); placerDouble(); }
   }

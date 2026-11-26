@@ -1405,7 +1405,7 @@ body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill
   }
 
   /* ---------- Manette de jeu (Bluetooth ou USB) ----------
-     Croix directionnelle ou joystick gauche = flèches. Boutons selon leur position (Retroid Pocket 5) : droite (A) = OK, bas (B) = retour sur Lancer, haut (X) = STOP, gauche (Y) = paramètres. Si l'appareil envoie déjà ces actions
+     Croix directionnelle ou joystick gauche = flèches. Boutons selon leur position (Retroid Pocket 5) : droite (A) = OK, bas (B) = retour sur Lancer, haut (X) = STOP, gauche (Y) = inutilisé. Si l'appareil envoie déjà ces actions
      comme des touches du clavier, la manette n'ajoute rien (pas de double déplacement). */
   let touchePhys = 0;
   document.addEventListener('keydown', function (e) { if (e.isTrusted) touchePhys = Date.now(); }, true);
@@ -1419,6 +1419,10 @@ body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill
     }, 80);
   }
   function lireManettes() {
+    try { lireManettesUnique(); } catch (err) { console.error(err); }
+    requestAnimationFrame(lireManettes);
+  }
+  function lireManettesUnique() {
     const liste = navigator.getGamepads ? navigator.getGamepads() : [];
     for (let g = 0; g < liste.length; g++) {
       const gp = liste[g];
@@ -1428,20 +1432,18 @@ body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill
       const etat = {
         ArrowUp: b(12) || ax[1] < -0.6, ArrowDown: b(13) || ax[1] > 0.6,
         ArrowLeft: b(14) || ax[0] < -0.6, ArrowRight: b(15) || ax[0] > 0.6,
-        Enter: b(1), Lancer: b(0), Stop: b(3), Params: b(2)
+        Enter: b(1), Lancer: b(0), Stop: b(3)
       };
       const mem = memManette[gp.index] || (memManette[gp.index] = {});
       Object.keys(etat).forEach(function (k) {
         if (etat[k] && !mem[k]) {
           if (k === 'Lancer') { const gob = $('gobelet'); if (gob.getClientRects().length) { gob.focus(); gob.click(); } }
           else if (k === 'Stop') raccourci('stop');
-          else if (k === 'Params') { if (vue('accueil') || vue('reglages')) raccourci('params'); }
           else envoyerTouche(k);
         }
         mem[k] = etat[k];
       });
     }
-    requestAnimationFrame(lireManettes);
   }
   function demarrerManette() { if (!boucleManette) { boucleManette = true; requestAnimationFrame(lireManettes); } }
   window.addEventListener('gamepadconnected', demarrerManette);

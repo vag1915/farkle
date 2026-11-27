@@ -999,12 +999,18 @@ body.des-blancs .de.kept svg circle, body.des-blancs .de.joker svg circle { fill
   }
 
   async function lancerHumain(idx, tk) {
+    const depart = document.activeElement;
     await lancer(idx, tk);
     if (!vivant(tk)) return;
     if (scoreOf(valeurs(libres())) === 0) { await farkle(tk); return; }
     G.busy = false;
     majScoreTour();
-    dire(chiffres(valeurs(idx)));
+    const p = dire(chiffres(valeurs(idx)));
+    /* Lancer depuis le bouton placé après la coche : retour au gobelet, à gauche des dés. */
+    if (depart && depart !== $('gobelet') && lecteur()) {
+      await p;
+      if (vivant(tk) && document.activeElement === depart) $('gobelet').focus();
+    }
   }
 
   function feedback(texte) { msg(texte); dire(texte); }
